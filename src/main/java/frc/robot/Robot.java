@@ -75,10 +75,26 @@ public class Robot extends TimedRobot {
         m_differentialDrive.arcadeDrive(forward, spin, false);
     }
     public void climbingsubsystem() {
-        //winch up 
-        //winch down 
-        //look at 2018 code 
-        //winch controlled by motor 
+        // talk to two controllers (three motors) - 1st controller twinMotorController, 2nd motor singleMotorController
+        // when twins go forward, single goes backward - controlled by 'up' on dPad
+        // when twins go backward, single goes forward - controlled by 'down' on dPad
+        var twinMotorController = new PWMTalonSRX(0);
+        var singleMotorController = new PWMTalonSRX(1);
+        var isPressed = m_primaryController.getPOV();
+        switch (isPressed){
+            case 0:
+            // raise climbing mech
+            twinMotorController.set(0.4);
+            singleMotorController.set(-0.4);
+            case 180:
+            // lower climbing mech
+            twinMotorController.set(-0.4);
+            singleMotorController.set(0.4);
+            default:
+            twinMotorController.set(0);
+            singleMotorController.set(0);
+            return;
+        }
     }
     public void ballmech(){
         //one motor to controll conveyor system?
