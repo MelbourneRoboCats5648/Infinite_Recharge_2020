@@ -28,12 +28,17 @@ public class Robot extends TimedRobot {
     private DifferentialDrive m_differentialDrive; // Talks to a right & left Talon which talks to motors (motor ctrl)
     private XboxController m_primaryController;
     private NetworkTableInstance ntInstance;
+    // motor control
     private PWMTalonSRX ball_mech_intake;
     private PWMTalonSRX ball_mech_flap;
     private PWMTalonSRX twinMotorController;
     private PWMTalonSRX singleMotorController;
-        
-    
+    private PWMTalonSRX ctrlpanelmotor;
+    private boolean startSpin = false;
+    private Colour startingcolour = Colour.NotSet;
+    private Colour prevColour = Colour.NotSet;
+    int n = 0;
+
     NetworkTable motorTable; // Displays info on driver ctrl screen
     // private Talon m_intakeMotor;
 
@@ -73,12 +78,19 @@ public class Robot extends TimedRobot {
             System.err.println("No USB Camera Found");
         }
 
+        ctrlpanelmotor = new PWMTalonSRX(6);
+        twinMotorController = new PWMTalonSRX(0);
+        singleMotorController = new PWMTalonSRX(1);
     }
 
     @Override
     public void teleopPeriodic() {
         arcadeDrive();
+        //check cancel button and stop everything if it is pressed
 
+        climbingsubsystem();
+        ballmech();
+        controlpanelcontrol();
         // climbing
         // ball delivery
         // control panel
@@ -90,7 +102,9 @@ public class Robot extends TimedRobot {
         // flap
         // control pannel motor
         // ask field management system what colour
+    }
 
+    public Colour DetectingRGBYfrmsensor() {
         // Colour sensor code
         /**
          * The method GetColor() returns a normalized color value from the sensor and
@@ -117,34 +131,36 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Blue", detectedColor.blue);
         SmartDashboard.putNumber("IR", IR);
 
-        //RLI = Reflected Light Intensity 
+        // RLI = Reflected Light Intensity
         double red_RLI = detectedColor.red;
         double green_RLI = detectedColor.green;
         double blue_RLI = detectedColor.blue;
 
-        //System.out.println(red_RLI);
+        // System.out.println(red_RLI);
 
         if (red_RLI > 0.6) {
-        // Detected Red
-        System.out.println("Red :)");
+            // Detected Red
+            System.out.println("Red :)");
+            return Colour.Red;
         }
-        
+
         if (red_RLI > 0.4 && green_RLI > 0.485) {
-        // Detected yellow
-        System.out.println("Yellow :/");
+            // Detected yellow
+            System.out.println("Yellow :/");
+            return Colour.Yellow;
         }
 
         if (green_RLI > 0.5 && blue_RLI > 0.19) {
             // Detected green
             System.out.println("Green :(");
-            }
+            return Colour.Green;
+        }
 
         if (blue_RLI > 0.3) {
             // Detected blue
             System.out.println("blue >_<");
-            }
-    
-        
+            return Colour.Blue;
+        }
 
         /**
          * In addition to RGB IR values, the color sensor can also return an infrared
@@ -158,6 +174,7 @@ public class Robot extends TimedRobot {
          * color values.
          */
         int proximity = m_colorSensor.getProximity();
+        return Colour.NotSet;
     }
 
     public void arcadeDrive() {
@@ -168,22 +185,22 @@ public class Robot extends TimedRobot {
     }
 
     public void climbingsubsystem() {
-        // talk to two controllers (three motors) - 1st controller twinMotorController, 2nd motor singleMotorController
+        // talk to two controllers (three motors) - 1st controller twinMotorController,
+        // 2nd motor singleMotorController
         // when twins go forward, single goes backward - controlled by 'up' on dPad
         // when twins go backward, single goes forward - controlled by 'down' on dPad
-        var twinMotorController = new PWMTalonSRX(0);
-        var singleMotorController = new PWMTalonSRX(1);
+
         var isPressed = m_primaryController.getPOV();
-        switch (isPressed){
-            case 0:
+        switch (isPressed) {
+        case 0:
             // raise climbing mech
             twinMotorController.set(0.4);
             singleMotorController.set(-0.4);
-            case 180:
+        case 180:
             // lower climbing mech
             twinMotorController.set(-0.4);
             singleMotorController.set(0.4);
-            default:
+        default:
             twinMotorController.set(0);
             singleMotorController.set(0);
             return;
@@ -193,13 +210,33 @@ public class Robot extends TimedRobot {
     public void ballmech() {
         // one motor to controll conveyor system?
         // flap control??
-        // ball mech intake controlls two motors one is wired back to front which goes backward wen the other goes forward
-       boolean is_b_pressed = m_primaryController.getBButtonPressed();
-       if(is_b_pressed) { ball_mech_intake.set(0.4);}      
-       
-       ball_mech_flap.set(0.4);
-       
+        // ball mech intake controlls two motors one is wired back to front which goes
+        // backward wen the other goes forward
+
+        //intake code: 
+        boolean is_b_pressed = m_primaryController.getBButtonPressed();
+        if (is_b_pressed){
+            if (ball_mech_intake.getSpeed() == 0) {
+                ball_mech_intake.set(0.4);
+            }
+            else {
+                ball_mech_intake.set(0);
+            }
+        }
         
+        // flap control code:
+        // For lowering think
+        if (m_primaryController.getBumper(Hand.kLeft)==true) { 
+            ball_mech_flap.set(0.25);
+        }
+        //For raising think
+        if (m_primaryController.getBumper(Hand.kRight)==true) { 
+            ball_mech_flap.set(-0.25);
+        }
+        if (m_primaryController.getBumper(Hand.kRight)==false && m_primaryController.getBumper(Hand.kLeft)==false) { 
+            ball_mech_flap.set(0);
+        }
+
 
     }
 
@@ -213,7 +250,31 @@ public class Robot extends TimedRobot {
 
     public void rotatepanel(int numberofrotations) {
         // spin control panel 'numberofrotations' times
+        var detectColourNum = numberofrotations * 2 + 1;
 
+        if (startSpin == false) {
+            if (m_primaryController.getXButton()) {
+                startingcolour = DetectingRGBYfrmsensor(); // reading the starting colour into a variable
+                ctrlpanelmotor.set(.75);
+                startSpin = true;
+                prevColour = startingcolour;
+                n = 0;
+            }
+        }
+
+        if (startSpin == true) {
+            var currentColour = DetectingRGBYfrmsensor();
+            if (currentColour != prevColour) {
+                if (currentColour == startingcolour) {
+                    n = n+1;
+                }
+            }
+            prevColour = currentColour;
+            if (n == detectColourNum) {
+                startSpin = false;
+                ctrlpanelmotor.set(0);
+            }
+        }        
     }
 
     public void movetosetcolour(Colour colour) {
@@ -225,6 +286,7 @@ public class Robot extends TimedRobot {
     public Colour getcolour() {
         String gameData;
         gameData = DriverStation.getInstance().getGameSpecificMessage();
+        // informing the driver station the colour you are looking for
         if (gameData.length() > 0) {
             switch (gameData.charAt(0)) {
             case 'B':
@@ -239,6 +301,7 @@ public class Robot extends TimedRobot {
             }
         }
         return Colour.NotSet;
+
     }
 
     enum Colour {
