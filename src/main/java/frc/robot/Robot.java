@@ -281,6 +281,12 @@ public class Robot extends TimedRobot {
         // detects current colour sensor reading
         // compare it to what it should be
         // spin wheel
+
+        // if its already on the right colour, do nothing
+    
+        if (robotToGameColour(DetectingRGBYfrmsensor()) == getcolour()) { // this is a guess
+            
+        }
     }
 
     public Colour getcolour() {
@@ -303,6 +309,23 @@ public class Robot extends TimedRobot {
         return Colour.NotSet;
 
     }
+
+    public Colour robotToGameColour(Colour robotcolour) {
+        if (robotcolour == Colour.Red){
+            return Colour.Blue;
+        }
+        if (robotcolour == Colour.Blue){
+            return Colour.Red;
+        }
+        if (robotcolour == Colour.Green){
+            return Colour.Yellow;
+        }
+        if (robotcolour == Colour.Yellow){
+            return Colour.Green;
+        }
+        return Colour.NotSet;
+    }
+
 
     enum Colour {
         NotSet, Blue, Red, Yellow, Green;
