@@ -20,7 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
  * This is a demo program showing the use of the RobotDrive class, specifically
- *
+ * 
  * it contains the code necessary to operate a robot with tank drive.
  */
 
@@ -28,6 +28,12 @@ public class Robot extends TimedRobot {
     private DifferentialDrive m_differentialDrive; // Talks to a right & left Talon which talks to motors (motor ctrl)
     private XboxController m_primaryController;
     private NetworkTableInstance ntInstance;
+    private PWMTalonSRX ball_mech_intake;
+    private PWMTalonSRX ball_mech_flap;
+    private PWMTalonSRX twinMotorController;
+    private PWMTalonSRX singleMotorController;
+        
+    
     NetworkTable motorTable; // Displays info on driver ctrl screen
     // private Talon m_intakeMotor;
 
@@ -90,7 +96,7 @@ public class Robot extends TimedRobot {
          * The method GetColor() returns a normalized color value from the sensor and
          * can be useful if outputting the color to an RGB LED or similar. To read the
          * raw color, use GetRawColor().
-         *
+         * 
          * The color sensor works best when within a few inches from an object in well
          * lit conditions (the built in LED is a big help here!). The farther an object
          * is the more light from the surroundings will bleed into the measurements and
@@ -111,7 +117,7 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Blue", detectedColor.blue);
         SmartDashboard.putNumber("IR", IR);
 
-        //RLI = Reflected Light Intensity
+        //RLI = Reflected Light Intensity 
         double red_RLI = detectedColor.red;
         double green_RLI = detectedColor.green;
         double blue_RLI = detectedColor.blue;
@@ -122,7 +128,7 @@ public class Robot extends TimedRobot {
         // Detected Red
         System.out.println("Red :)");
         }
-
+        
         if (red_RLI > 0.4 && green_RLI > 0.485) {
         // Detected yellow
         System.out.println("Yellow :/");
@@ -137,8 +143,8 @@ public class Robot extends TimedRobot {
             // Detected blue
             System.out.println("blue >_<");
             }
-
-
+    
+        
 
         /**
          * In addition to RGB IR values, the color sensor can also return an infrared
@@ -146,7 +152,7 @@ public class Robot extends TimedRobot {
          * measure the intensity of the return. When an object is close the value of the
          * proximity will be large (max 2047 with default settings) and will approach
          * zero when the object is far away.
-         *
+         * 
          * Proximity can be used to roughly approximate the distance of an object or
          * provide a threshold for when an object is close enough to provide accurate
          * color values.
@@ -187,6 +193,14 @@ public class Robot extends TimedRobot {
     public void ballmech() {
         // one motor to controll conveyor system?
         // flap control??
+        // ball mech intake controlls two motors one is wired back to front which goes backward wen the other goes forward
+       boolean is_b_pressed = m_primaryController.getBButtonPressed();
+       if(is_b_pressed) { ball_mech_intake.set(0.4);}      
+       
+       ball_mech_flap.set(0.4);
+       
+        
+
     }
 
     public void controlpanelcontrol() {
