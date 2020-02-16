@@ -43,7 +43,7 @@ public class Robot extends TimedRobot {
     private Colour converted_colour;
     private Colour gameSensoColour;
     private Colour gameSensor_target;
-
+    private boolean cancel = false;
     int n = 0;
 
     NetworkTable motorTable; // Displays info on driver ctrl screen
@@ -71,7 +71,7 @@ public class Robot extends TimedRobot {
         // Setup network tables
         ntInstance = NetworkTableInstance.getDefault();
 
-        // Start camera server
+        // Start camera server 
         try {
             UsbCamera cameraFront = CameraServer.getInstance().startAutomaticCapture(0);
             UsbCamera cameraBack = CameraServer.getInstance().startAutomaticCapture(1);
@@ -93,7 +93,6 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopPeriodic() {
         arcadeDrive();
-        //check cancel button and stop everything if it is pressed
 
         climbingsubsystem();
         ballmech();
@@ -186,7 +185,9 @@ public class Robot extends TimedRobot {
         // 2nd motor singleMotorController
         // when twins go forward, single goes backward - controlled by 'up' on dPad
         // when twins go backward, single goes forward - controlled by 'down' on dPad
-
+        if (Cancel()) {
+            return;
+        }
         var isPressed = m_primaryController.getPOV();
         switch (isPressed) {
         case 0:
@@ -209,7 +210,9 @@ public class Robot extends TimedRobot {
         // flap control??
         // ball mech intake controlls two motors one is wired back to front which goes
         // backward wen the other goes forward
-
+        if (Cancel()) {
+            return;
+        }
         //intake code: 
         boolean is_b_pressed = m_primaryController.getBButtonPressed();
         if (is_b_pressed){
@@ -249,7 +252,10 @@ public class Robot extends TimedRobot {
     public void rotatepanel(int numberofrotations) {
         // spin control panel 'numberofrotations' times
         var detectColourNum = numberofrotations * 2 + 1;
-
+        if (Cancel()) {
+            startSpin = false;
+            return;
+        }
         if (startSpin == false) {
             if (m_primaryController.getXButton()) {
                 startingcolour = DetectingRGBYfrmsensor(); // reading the starting colour into a variable
@@ -281,6 +287,10 @@ public class Robot extends TimedRobot {
      * spin wheel
      */
     public void movetosetcolour() {
+        if (Cancel()) {
+            Start_search = false;
+            return;
+        }
         boolean is_y_pressed = m_primaryController.getYButtonPressed();
         if (is_y_pressed) {
             Start_search = true;
@@ -298,6 +308,17 @@ public class Robot extends TimedRobot {
         }
     }         
     
+    public boolean Cancel(){
+        boolean is_cancel_pressed = m_primaryController.getStartButtonPressed();
+        if (is_cancel_pressed) {
+            ball_mech_intake.set(0);
+            ball_mech_flap.set(0);
+            twinMotorController.set(0);
+            singleMotorController.set(0);
+            ctrlpanelmotor.set(0);
+            return true;
+        }
+    }
     /**
      * Getting the game specific message and finding out what colour we are targeting
      * @return Colour from game specific msg
