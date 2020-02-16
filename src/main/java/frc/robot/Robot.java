@@ -4,7 +4,6 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
-import sun.font.TrueTypeFont;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -14,6 +13,8 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.cscore.VideoMode;
+import edu.wpi.cscore.VideoSource.ConnectionStrategy;
+import edu.wpi.cscore.MjpegServer;
 import edu.wpi.first.wpilibj.DriverStation;
 import com.revrobotics.ColorSensorV3;
 
@@ -41,8 +42,11 @@ public class Robot extends TimedRobot {
     private Colour prevColour = Colour.NotSet;
     private Colour robot_sensor;
     private Colour converted_colour;
-    private Colour gameSensoColour;
     private Colour gameSensor_target;
+    private UsbCamera cameraFront;
+    private UsbCamera cameraBack;
+    private MjpegServer cameraServer;
+    private Camera currentCamera;
 
     int n = 0;
 
@@ -71,27 +75,40 @@ public class Robot extends TimedRobot {
         // Setup network tables
         ntInstance = NetworkTableInstance.getDefault();
 
-        // Start camera server
-        try {
-            UsbCamera cameraFront = CameraServer.getInstance().startAutomaticCapture(0);
-            UsbCamera cameraBack = CameraServer.getInstance().startAutomaticCapture(1);
-            // Set the camera video mode
-            VideoMode[] modeFront = cameraFront.enumerateVideoModes();
-            VideoMode[] modeBack = cameraFront.enumerateVideoModes();
-
-            cameraFront.setVideoMode(modeFront[100]);
-            cameraBack.setVideoMode(modeBack[100]);
-        } catch (Exception e) {
-            System.err.println("No USB Camera Found");
-        }
+        SetupCameras();
 
         ctrlpanelmotor = new PWMTalonSRX(6);
         twinMotorController = new PWMTalonSRX(0);
         singleMotorController = new PWMTalonSRX(1);
     }
 
+    public void SetupCameras()
+    {        
+        // Start camera server
+        try {
+            cameraFront = CameraServer.getInstance().startAutomaticCapture(0);
+            cameraBack = CameraServer.getInstance().startAutomaticCapture(1);
+            cameraFront.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
+            cameraBack.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
+            
+            // Set the camera video mode
+            VideoMode[] modeFront = cameraFront.enumerateVideoModes();
+            VideoMode[] modeBack = cameraFront.enumerateVideoModes();
+            cameraFront.setVideoMode(modeFront[100]);
+            cameraBack.setVideoMode(modeBack[100]);
+
+            cameraServer = CameraServer.getInstance().addSwitchedCamera("switched camera");
+        } catch (Exception e) {
+            System.err.println("No USB Camera Found");
+        }
+
+        currentCamera = Camera.Front;
+        cameraServer.setSource(cameraFront);
+    }
+
     @Override
     public void teleopPeriodic() {
+        switchCameras();
         arcadeDrive();
         //check cancel button and stop everything if it is pressed
 
@@ -99,6 +116,21 @@ public class Robot extends TimedRobot {
         ballmech();
         controlpanelcontrol();
         //switch cameras
+    }
+
+    public void switchCameras()
+    {
+        if(m_primaryController.getStickButtonPressed(Hand.kLeft))
+        {
+            if(currentCamera == Camera.Front)
+            {
+                cameraServer.setSource(cameraBack);
+                currentCamera = Camera.Back;
+            } else {
+                cameraServer.setSource(cameraFront);
+                currentCamera = Camera.Front;
+            }
+        }
     }
 
     public Colour DetectingRGBYfrmsensor() {
@@ -343,4 +375,6 @@ public class Robot extends TimedRobot {
     enum Colour {
         NotSet, Blue, Red, Yellow, Green;
     }
+
+    enum Camera { Front, Back; }
 }
