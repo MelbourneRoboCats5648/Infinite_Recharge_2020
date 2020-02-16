@@ -351,6 +351,9 @@ public class Robot extends TimedRobot {
             ctrlpanelmotor.set(0);
             return true;
         }
+        else {
+            return false;
+        }
     }
     /**
      * Getting the game specific message and finding out what colour we are targeting
