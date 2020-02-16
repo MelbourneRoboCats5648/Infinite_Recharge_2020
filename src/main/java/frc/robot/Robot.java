@@ -4,6 +4,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
+import sun.font.TrueTypeFont;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -35,8 +36,14 @@ public class Robot extends TimedRobot {
     private PWMTalonSRX singleMotorController;
     private PWMTalonSRX ctrlpanelmotor;
     private boolean startSpin = false;
+    private boolean Start_search = false;
     private Colour startingcolour = Colour.NotSet;
     private Colour prevColour = Colour.NotSet;
+    private Colour robot_sensor;
+    private Colour converted_colour;
+    private Colour gameSensoColour;
+    private Colour gameSensor_target;
+
     int n = 0;
 
     NetworkTable motorTable; // Displays info on driver ctrl screen
@@ -91,17 +98,7 @@ public class Robot extends TimedRobot {
         climbingsubsystem();
         ballmech();
         controlpanelcontrol();
-        // climbing
-        // ball delivery
-        // control panel
-        // cameras
-        // winch open
-        // winch closed
-        // driving
-        // ball intke - motor
-        // flap
-        // control pannel motor
-        // ask field management system what colour
+        //switch cameras
     }
 
     public Colour DetectingRGBYfrmsensor() {
@@ -246,6 +243,7 @@ public class Robot extends TimedRobot {
         // control panel number of rotations
         rotatepanel(3); // ?
         // control panel planned colour
+        movetosetcolour();
     }
 
     public void rotatepanel(int numberofrotations) {
@@ -277,18 +275,33 @@ public class Robot extends TimedRobot {
         }        
     }
 
-    public void movetosetcolour(Colour colour) {
-        // detects current colour sensor reading
-        // compare it to what it should be
-        // spin wheel
-
-        // if its already on the right colour, do nothing
-    
-        if (robotToGameColour(DetectingRGBYfrmsensor()) == getcolour()) { // this is a guess
-            
+    /**
+     * detects current colour sensor reading
+     * compare it to what it should be
+     * spin wheel
+     */
+    public void movetosetcolour() {
+        boolean is_y_pressed = m_primaryController.getYButtonPressed();
+        if (is_y_pressed) {
+            Start_search = true;
+            gameSensor_target = getcolour(); // defining what colour we are looking for under game sensor
         }
-    }
-
+        if (Start_search == true) {
+            robot_sensor = DetectingRGBYfrmsensor();
+            converted_colour = robotToGameColour(robot_sensor);
+            if (converted_colour != gameSensor_target) {
+                ctrlpanelmotor.set(.25);
+            } else {
+                ctrlpanelmotor.set(0);
+                Start_search = false;
+            }
+        }
+    }         
+    
+    /**
+     * Getting the game specific message and finding out what colour we are targeting
+     * @return Colour from game specific msg
+     */
     public Colour getcolour() {
         String gameData;
         gameData = DriverStation.getInstance().getGameSpecificMessage();
