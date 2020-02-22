@@ -2,12 +2,14 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.PWMTalonSRX;
+import edu.wpi.first.wpilibj.PWMVictorSPX;
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTable;
@@ -31,11 +33,12 @@ public class Robot extends TimedRobot {
     private XboxController m_primaryController;
     private NetworkTableInstance ntInstance;
     // motor control
-    private PWMTalonSRX ball_mech_intake;
-    private PWMTalonSRX ball_mech_flap;
-    private PWMTalonSRX twinMotorController;
-    private PWMTalonSRX singleMotorController;
-    private PWMTalonSRX ctrlpanelmotor;
+    private VictorSP ball_mech_intake; //ball mech Intake - Victor SP port 4
+    private VictorSP ball_mech_flap;  // Ball mech Flap - Victor SP port 7
+    private PWMTalonSRX twinMotorController; // Climb Lift - Talon SRX port 8
+    private VictorSP singleMotorController; // Climb extend - Victor SP port 3
+    private VictorSP ctrlpanelmotor;// Control pannel - Victor SP port 6
+    private PWMTalonSRX ball_mech_conveyer; // Ball mech conveyer - talon srx port 5
     private boolean startSpin = false;
     private boolean Start_search = false;
     private Colour startingcolour = Colour.NotSet;
@@ -47,6 +50,12 @@ public class Robot extends TimedRobot {
     private UsbCamera cameraBack;
     private MjpegServer cameraServer;
     private Camera currentCamera;
+    private double flapSpeed = 0.25;
+    private double controlPanelRotationSpeed = 0.75;
+    private double controlPanelSearchSpeed = 0.25;
+    private double ballIntakeSpeed = 0.4;
+    private double climbSpeed = 0.4;
+
 
     private boolean cancel = false;
     int n = 0;
@@ -71,16 +80,19 @@ public class Robot extends TimedRobot {
         m_primaryController = new XboxController(0);
 
         // Setup drive motors
-        m_differentialDrive = new DifferentialDrive(new PWMTalonSRX(8), new PWMTalonSRX(9));
+        m_differentialDrive = new DifferentialDrive(new PWMVictorSPX(2), new PWMVictorSPX(1)); // Victor SPS on ports 1&2
 
         // Setup network tables
         ntInstance = NetworkTableInstance.getDefault();
 
         SetupCameras();
 
-        ctrlpanelmotor = new PWMTalonSRX(6);
-        twinMotorController = new PWMTalonSRX(0);
-        singleMotorController = new PWMTalonSRX(1);
+        ctrlpanelmotor = new VictorSP(6);
+        twinMotorController = new PWMTalonSRX(8);
+        singleMotorController = new VictorSP(3);
+        ball_mech_intake = new VictorSP(4);
+        ball_mech_flap = new VictorSP(7);
+        ball_mech_conveyer = new PWMTalonSRX(5);
     }
 
     public void SetupCameras()
@@ -114,8 +126,7 @@ public class Robot extends TimedRobot {
 
         climbingsubsystem();
         ballmech();
-        controlpanelcontrol();
-        //switch cameras
+        controlpanelcontrol();        
     }
 
     public void switchCameras()
@@ -225,12 +236,12 @@ public class Robot extends TimedRobot {
         switch (isPressed) {
         case 0:
             // raise climbing mech
-            twinMotorController.set(0.4);
-            singleMotorController.set(-0.4);
+            twinMotorController.set(climbSpeed);
+            singleMotorController.set(-climbSpeed);
         case 180:
             // lower climbing mech
-            twinMotorController.set(-0.4);
-            singleMotorController.set(0.4);
+            twinMotorController.set(-climbSpeed);
+            singleMotorController.set(climbSpeed);
         default:
             twinMotorController.set(0);
             singleMotorController.set(0);
@@ -250,21 +261,23 @@ public class Robot extends TimedRobot {
         boolean is_b_pressed = m_primaryController.getBButtonPressed();
         if (is_b_pressed){
             if (ball_mech_intake.getSpeed() == 0) {
-                ball_mech_intake.set(0.4);
+                ball_mech_intake.set(ballIntakeSpeed);
+                ball_mech_conveyer.set(ballIntakeSpeed);
             }
             else {
                 ball_mech_intake.set(0);
+                ball_mech_conveyer.set(0);
             }
         }
         
         // flap control code:
         // For lowering think
         if (m_primaryController.getBumper(Hand.kLeft)==true) { 
-            ball_mech_flap.set(0.25);
+            ball_mech_flap.set(flapSpeed);
         }
         //For raising think
         if (m_primaryController.getBumper(Hand.kRight)==true) { 
-            ball_mech_flap.set(-0.25);
+            ball_mech_flap.set(-flapSpeed);
         }
         if (m_primaryController.getBumper(Hand.kRight)==false && m_primaryController.getBumper(Hand.kLeft)==false) { 
             ball_mech_flap.set(0);
@@ -292,7 +305,7 @@ public class Robot extends TimedRobot {
         if (startSpin == false) {
             if (m_primaryController.getXButton()) {
                 startingcolour = DetectingRGBYfrmsensor(); // reading the starting colour into a variable
-                ctrlpanelmotor.set(.75);
+                ctrlpanelmotor.set(controlPanelRotationSpeed);
                 startSpin = true;
                 prevColour = startingcolour;
                 n = 0;
@@ -333,7 +346,7 @@ public class Robot extends TimedRobot {
             robot_sensor = DetectingRGBYfrmsensor();
             converted_colour = robotToGameColour(robot_sensor);
             if (converted_colour != gameSensor_target) {
-                ctrlpanelmotor.set(.25);
+                ctrlpanelmotor.set(controlPanelSearchSpeed);
             } else {
                 ctrlpanelmotor.set(0);
                 Start_search = false;
@@ -349,6 +362,7 @@ public class Robot extends TimedRobot {
             twinMotorController.set(0);
             singleMotorController.set(0);
             ctrlpanelmotor.set(0);
+            ball_mech_conveyer.set(0);
             return true;
         }
         else {
