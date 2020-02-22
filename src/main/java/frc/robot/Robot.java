@@ -53,8 +53,8 @@ public class Robot extends TimedRobot {
     private double flapSpeed = 0.25;
     private double controlPanelRotationSpeed = 0.75;
     private double controlPanelSearchSpeed = 0.25;
-    private double ballIntakeSpeed = 0.4;
-    private double climbSpeed = 0.4;
+    private double ballIntakeSpeed = 0.2;
+    private double climbSpeed =  0.8;
 
 
     private boolean cancel = false;
@@ -75,6 +75,16 @@ public class Robot extends TimedRobot {
     private final ColorSensorV3 m_colorSensor = new ColorSensorV3(i2cPort);
 
     @Override
+    public void teleopInit() {
+        super.teleopInit();
+    }
+
+    @Override
+    public void disabledInit() {
+        super.disabledInit();
+    }
+
+    @Override
     public void robotInit() { // once the robot has turned on what will it do?
         // Setup XBox controller
         m_primaryController = new XboxController(0);
@@ -90,8 +100,8 @@ public class Robot extends TimedRobot {
         ctrlpanelmotor = new VictorSP(6);
         twinMotorController = new PWMTalonSRX(8);
         singleMotorController = new VictorSP(3);
-        ball_mech_intake = new VictorSP(4);
-        ball_mech_flap = new VictorSP(7);
+        ball_mech_intake = new VictorSP(7);
+        ball_mech_flap = new VictorSP(4);
         ball_mech_conveyer = new PWMTalonSRX(5);
     }
 
@@ -119,9 +129,10 @@ public class Robot extends TimedRobot {
         cameraServer.setSource(cameraFront);
     }
 
+
     @Override
     public void teleopPeriodic() {
-        switchCameras();
+        //switchCameras();
         arcadeDrive();
 
         climbingsubsystem();
@@ -238,10 +249,12 @@ public class Robot extends TimedRobot {
             // raise climbing mech
             twinMotorController.set(climbSpeed);
             singleMotorController.set(-climbSpeed);
+            return;
         case 180:
             // lower climbing mech
             twinMotorController.set(-climbSpeed);
             singleMotorController.set(climbSpeed);
+            return;
         default:
             twinMotorController.set(0);
             singleMotorController.set(0);
@@ -258,8 +271,17 @@ public class Robot extends TimedRobot {
             return;
         }
         //intake code: 
-        boolean is_b_pressed = m_primaryController.getBButtonPressed();
-        if (is_b_pressed){
+        if (m_primaryController.getBButtonPressed()){
+            if (ball_mech_intake.getSpeed() == 0) {
+                ball_mech_intake.set(-ballIntakeSpeed);
+                ball_mech_conveyer.set(-ballIntakeSpeed);
+            }
+            else {
+                ball_mech_intake.set(0);
+                ball_mech_conveyer.set(0);
+            }
+        }
+        if (m_primaryController.getAButtonPressed()){
             if (ball_mech_intake.getSpeed() == 0) {
                 ball_mech_intake.set(ballIntakeSpeed);
                 ball_mech_conveyer.set(ballIntakeSpeed);
@@ -269,7 +291,6 @@ public class Robot extends TimedRobot {
                 ball_mech_conveyer.set(0);
             }
         }
-        
         // flap control code:
         // For lowering think
         if (m_primaryController.getBumper(Hand.kLeft)==true) { 
@@ -337,8 +358,8 @@ public class Robot extends TimedRobot {
             Start_search = false;
             return;
         }
-        boolean is_y_pressed = m_primaryController.getYButtonPressed();
-        if (is_y_pressed) {
+
+        if (m_primaryController.getYButtonPressed()) {
             Start_search = true;
             gameSensor_target = getcolour(); // defining what colour we are looking for under game sensor
         }
@@ -416,4 +437,36 @@ public class Robot extends TimedRobot {
     }
 
     enum Camera { Front, Back; }
+
+    //@Override
+    public void calibration() { //testPeriodic
+        if (m_primaryController.getXButtonPressed()) {
+            ball_mech_conveyer.set(1);
+            ball_mech_flap.set(1);
+            ball_mech_intake.set(1);
+            twinMotorController.set(1);
+            singleMotorController.set(1);
+            ctrlpanelmotor.set(1);
+            m_differentialDrive.arcadeDrive(1, 0, false);
+        }
+        if (m_primaryController.getYButtonPressed()) {
+            ball_mech_conveyer.set(-1);
+            ball_mech_flap.set(-1);
+            ball_mech_intake.set(-1);
+            twinMotorController.set(-1);
+            singleMotorController.set(-1);
+            ctrlpanelmotor.set(-1);
+            m_differentialDrive.arcadeDrive(-1, 0, false);
+        }
+        if (m_primaryController.getBButtonPressed()) {
+            ball_mech_conveyer.set(0);
+            ball_mech_flap.set(0);
+            ball_mech_intake.set(0);
+            twinMotorController.set(0);
+            singleMotorController.set(0);
+            ctrlpanelmotor.set(0);
+            m_differentialDrive.arcadeDrive(0, 0, false);
+        }
+    }
+
 }
