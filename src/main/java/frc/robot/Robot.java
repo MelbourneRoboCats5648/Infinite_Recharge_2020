@@ -50,10 +50,11 @@ public class Robot extends TimedRobot {
     private UsbCamera cameraBack;
     private MjpegServer cameraServer;
     private Camera currentCamera;
-    private double flapSpeed = 0.25;
+    private double flapSpeed = 0.2;
     private double controlPanelRotationSpeed = 0.75;
     private double controlPanelSearchSpeed = 0.25;
-    private double ballIntakeSpeed = 0.2;
+    private double ballIntakeSpeed = 0.4;
+    private double conveyorSpeed = 0.5;
     private double climbSpeed =  0.8;
     private Timer timer;
 
@@ -267,12 +268,12 @@ public class Robot extends TimedRobot {
         switch (isPressed) {
         case 0:
             // raise climbing mech
-            twinMotorController.set(climbSpeed*1.02);
+            twinMotorController.set(-climbSpeed*1.02);
             singleMotorController.set(-climbSpeed);
             return;
         case 180:
             // lower climbing mech
-            twinMotorController.set(-climbSpeed*1.02);
+            twinMotorController.set(climbSpeed*1.03); // multiplying to account for different motor speed
             singleMotorController.set(climbSpeed);
             return;
         default:
@@ -294,7 +295,7 @@ public class Robot extends TimedRobot {
         if (m_primaryController.getBButtonPressed()){
             if (ball_mech_intake.getSpeed() == 0) {
                 ball_mech_intake.set(-ballIntakeSpeed);
-                ball_mech_conveyer.set(-ballIntakeSpeed);
+                ball_mech_conveyer.set(conveyorSpeed);
             }
             else {
                 ball_mech_intake.set(0);
@@ -304,7 +305,7 @@ public class Robot extends TimedRobot {
         if (m_primaryController.getAButtonPressed()){
             if (ball_mech_intake.getSpeed() == 0) {
                 ball_mech_intake.set(ballIntakeSpeed);
-                ball_mech_conveyer.set(ballIntakeSpeed);
+                ball_mech_conveyer.set(-conveyorSpeed);
             }
             else {
                 ball_mech_intake.set(0);
@@ -312,18 +313,15 @@ public class Robot extends TimedRobot {
             }
         }
         // flap control code:
-        // For lowering think
-        if (m_primaryController.getBumper(Hand.kLeft)==true) { 
-            ball_mech_flap.set(flapSpeed);
-        }
-        //For raising think
-        if (m_primaryController.getBumper(Hand.kRight)==true) { 
-            ball_mech_flap.set(-flapSpeed);
-        }
-        if (m_primaryController.getBumper(Hand.kRight)==false && m_primaryController.getBumper(Hand.kLeft)==false) { 
+        if (m_primaryController.getTriggerAxis(Hand.kLeft) < 0.1 && m_primaryController.getTriggerAxis(Hand.kRight) < 0.1)
+        {
             ball_mech_flap.set(0);
+            return;
         }
-
+        // For lowering think
+        ball_mech_flap.set(flapSpeed*m_primaryController.getTriggerAxis(Hand.kLeft));
+        //For raising think
+        ball_mech_flap.set(-flapSpeed*m_primaryController.getTriggerAxis(Hand.kRight));
 
     }
 
