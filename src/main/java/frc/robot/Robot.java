@@ -19,7 +19,7 @@ import edu.wpi.cscore.VideoSource.ConnectionStrategy;
 import edu.wpi.cscore.MjpegServer;
 import edu.wpi.first.wpilibj.DriverStation;
 import com.revrobotics.ColorSensorV3;
-
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
@@ -55,6 +55,7 @@ public class Robot extends TimedRobot {
     private double controlPanelSearchSpeed = 0.25;
     private double ballIntakeSpeed = 0.2;
     private double climbSpeed =  0.8;
+    private Timer timer;
 
 
     private boolean cancel = false;
@@ -108,7 +109,7 @@ public class Robot extends TimedRobot {
     public void SetupCameras()
     {        
         // Start camera server
-        try {
+        try {  
             cameraFront = CameraServer.getInstance().startAutomaticCapture(0);
             cameraBack = CameraServer.getInstance().startAutomaticCapture(1);
             cameraFront.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
@@ -129,10 +130,29 @@ public class Robot extends TimedRobot {
         cameraServer.setSource(cameraFront);
     }
 
+    @Override
+    public void autonomousInit(){
+        timer = new Timer();
+        timer.start();
+
+        // BLEH
+        // Drive forward - cross initiation line
+        // Maybe shoot??
+
+    }
+    @Override
+    public void autonomousPeriodic() {
+        if (timer.get() < 5.0){
+            m_differentialDrive.arcadeDrive(0.4, 0, false);
+        }
+        else{
+            m_differentialDrive.arcadeDrive(0, 0, false);
+        }
+    }
 
     @Override
     public void teleopPeriodic() {
-        //switchCameras();
+        switchCameras();
         arcadeDrive();
 
         climbingsubsystem();
@@ -247,12 +267,12 @@ public class Robot extends TimedRobot {
         switch (isPressed) {
         case 0:
             // raise climbing mech
-            twinMotorController.set(climbSpeed);
+            twinMotorController.set(climbSpeed*1.05);
             singleMotorController.set(-climbSpeed);
             return;
         case 180:
             // lower climbing mech
-            twinMotorController.set(-climbSpeed);
+            twinMotorController.set(-climbSpeed*1.05);
             singleMotorController.set(climbSpeed);
             return;
         default:
