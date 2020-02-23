@@ -162,7 +162,7 @@ public class Robot extends TimedRobot {
 
     public void switchCameras()
     {
-        if(m_primaryController.getStickButtonPressed(Hand.kLeft))
+        if(m_primaryController.getBumperPressed(Hand.kLeft))
         {
             if(currentCamera == Camera.Front)
             {
@@ -267,12 +267,12 @@ public class Robot extends TimedRobot {
         switch (isPressed) {
         case 0:
             // raise climbing mech
-            twinMotorController.set(climbSpeed*1.05);
+            twinMotorController.set(climbSpeed*1.02);
             singleMotorController.set(-climbSpeed);
             return;
         case 180:
             // lower climbing mech
-            twinMotorController.set(-climbSpeed*1.05);
+            twinMotorController.set(-climbSpeed*1.02);
             singleMotorController.set(climbSpeed);
             return;
         default:
